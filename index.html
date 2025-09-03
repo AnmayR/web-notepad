@@ -154,30 +154,52 @@ document.querySelectorAll(".menu>button").forEach(btn=>btn.onclick=(e)=>{const m
 window.onclick=()=>closeMenus();
 
 // Shortcuts
-window.addEventListener("keydown",e=>{
-  if(e.ctrlKey){switch(e.key.toLowerCase()){
-    case "n":e.preventDefault();newFile();break;
-    case "o":e.preventDefault();openFile();break;
-    case "s":e.preventDefault();if(e.shiftKey)saveFile(true);else saveFile(false);break;
-    case "z":e.preventDefault();document.execCommand("undo");break;
-    case "y":e.preventDefault();document.execCommand("redo");break;
-    case "x":e.preventDefault();document.execCommand("cut");break;
-    case "c":e.preventDefault();document.execCommand("copy");break;
-    case "v":e.preventDefault();document.execCommand("paste");break;
-    case "a":e.preventDefault();editor.select();break;
-    case "f":e.preventDefault();findTextDialog();break;
-    case "h":e.preventDefault();replaceDialogOpen();break;
-    case "g":e.preventDefault();gotoDialogOpen();break;
-  }}
-  if(e.key==="Delete"){document.execCommand("delete");}
-  if(e.key==="F5"){e.preventDefault();insertDate();}
-  if(e.altKey&&e.key.toLowerCase()==="w"){e.preventDefault();toggleWrap();}
-  if(e.altKey&&e.key.toLowerCase()==="f"){e.preventDefault();fontDialogOpen();}
-  if(e.altKey&&e.key.toLowerCase()==="s"){e.preventDefault();toggleStatus();}
-  if(e.key==="F1"){e.preventDefault();about();}
-  if(e.altKey&&e.key==="F4"){e.preventDefault();window.close();}
+window.addEventListener("keydown", e => {
+  if (e.ctrlKey) {
+    switch (e.key.toLowerCase()) {
+      case "n": e.preventDefault(); newFile(); break;
+      case "o": e.preventDefault(); openFile(); break;
+      case "s":
+        e.preventDefault();
+        if (e.shiftKey) saveFile(true); else saveFile(false);
+        break;
+      case "z": e.preventDefault(); document.execCommand("undo"); break;
+      case "y": e.preventDefault(); document.execCommand("redo"); break;
+
+      // ⚡ Let browser handle Cut/Copy/Paste (no preventDefault)
+      case "x": return; // Ctrl+X works natively
+      case "c": return; // Ctrl+C works natively
+      case "v": return; // Ctrl+V works natively
+
+      case "a": e.preventDefault(); editor.select(); break;
+      case "f": e.preventDefault(); findTextDialog(); break;
+      case "h": e.preventDefault(); replaceDialogOpen(); break;
+      case "g": e.preventDefault(); gotoDialogOpen(); break;
+    }
+  }
+
+  // ✅ Delete key → let browser handle it
+  if (e.key === "Delete") return;
+
+  // ✅ Time/Date
+  if (e.key === "F5") { e.preventDefault(); insertDate(); }
+
+  // ✅ Alt key combinations
+  if (e.altKey && e.key.toLowerCase() === "w") { e.preventDefault(); toggleWrap(); }
+  if (e.altKey && e.key.toLowerCase() === "f") { e.preventDefault(); fontDialogOpen(); }
+  if (e.altKey && e.key.toLowerCase() === "s") { e.preventDefault(); toggleStatus(); }
+
+  // ✅ Help
+  if (e.key === "F1") { e.preventDefault(); about(); }
+
+  // ✅ Exit
+  if (e.altKey && e.key === "F4") { e.preventDefault(); window.close(); }
 });
+
 updateStatus();
+
+
 </script>
 </body>
 </html>
+
