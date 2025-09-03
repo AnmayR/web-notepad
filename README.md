@@ -17,14 +17,6 @@ It includes menus, keyboard shortcuts, word wrap, font settings, and a status ba
 - Autosave feature (saves your text in browser).  
 - Looks and feels like the **classic Windows Notepad**.
 
----
-
-## 🖼️ Screenshot
-*(Add your screenshot here later!)*
-
----
-
-
 
 ---
 
