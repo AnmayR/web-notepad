@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Web Notepad</title>
+  <style>
+    body{margin:0;height:100vh;display:flex;flex-direction:column;font-family:Consolas,monospace}
+    header{background:#f0f0f0;border-bottom:1px solid #ccc;user-select:none}
+    .menubar{display:flex;gap:1rem;padding:2px 6px}
+    .menu{position:relative}
+    .menu>button{background:transparent;border:none;padding:4px 8px;font-size:14px;cursor:pointer}
+    .menu>button:hover,.menu.open>button{background:#cce0ff}
+    .menu-list{display:none;position:absolute;top:100%;left:0;background:#fff;border:1px solid #ccc;min-width:160px;z-index:10}
+    .menu.open .menu-list{display:block}
+    .menu-item{padding:4px 10px;cursor:pointer;font-size:14px}
+    .menu-item:hover{background:#cce0ff}
+    .menu-hr{border-top:1px solid #ccc;margin:4px 0}
+    textarea{flex:1;padding:8px;font-size:14px;resize:none;white-space:pre;outline:none;border:none}
+    .statusbar{background:#f0f0f0;border-top:1px solid #ccc;font-size:12px;padding:2px 8px;display:flex;justify-content:space-between}
+    dialog{border:1px solid #ccc;padding:10px;font-size:14px}
+    dialog input{width:100%;margin-top:4px;padding:4px}
+    dialog footer{text-align:right;margin-top:8px}
+  </style>
+</head>
+<body>
+<header>
+  <nav class="menubar">
+    <div class="menu"><button>File</button>
+      <div class="menu-list">
+        <div class="menu-item" data-action="new">New</div>
+        <div class="menu-item" data-action="open">Open…</div>
+        <div class="menu-item" data-action="save">Save</div>
+        <div class="menu-item" data-action="saveAs">Save As…</div>
+        <div class="menu-hr"></div>
+        <div class="menu-item" data-action="exit">Exit</div>
+      </div>
+    </div>
+    <div class="menu"><button>Edit</button>
+      <div class="menu-list">
+        <div class="menu-item" data-action="undo">Undo</div>
+        <div class="menu-item" data-action="redo">Redo</div>
+        <div class="menu-hr"></div>
+        <div class="menu-item" data-action="cut">Cut</div>
+        <div class="menu-item" data-action="copy">Copy</div>
+        <div class="menu-item" data-action="paste">Paste</div>
+        <div class="menu-item" data-action="delete">Delete</div>
+        <div class="menu-hr"></div>
+        <div class="menu-item" data-action="find">Find…</div>
+        <div class="menu-item" data-action="replace">Replace…</div>
+        <div class="menu-item" data-action="goto">Go To…</div>
+        <div class="menu-hr"></div>
+        <div class="menu-item" data-action="selectAll">Select All</div>
+        <div class="menu-item" data-action="time">Time/Date</div>
+      </div>
+    </div>
+    <div class="menu"><button>Format</button>
+      <div class="menu-list">
+        <div class="menu-item" data-action="wrap">Word Wrap</div>
+        <div class="menu-item" data-action="font">Font…</div>
+      </div>
+    </div>
+    <div class="menu"><button>View</button>
+      <div class="menu-list">
+        <div class="menu-item" data-action="toggleStatus">Status Bar</div>
+      </div>
+    </div>
+    <div class="menu"><button>Help</button>
+      <div class="menu-list">
+        <div class="menu-item" data-action="about">About Notepad</div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<textarea id="editor" spellcheck="false"></textarea>
+<div class="statusbar" id="statusbar">
+  <span id="cursor">Ln 1, Col 1</span>
+  <span id="length">Chars 0</span>
+</div>
+
+<!-- Dialogs -->
+<dialog id="findDialog">
+  <label>Find:<input id="findText"></label>
+  <footer><button id="findNext">Find Next</button><button onclick="findDialog.close()">Cancel</button></footer>
+</dialog>
+
+<dialog id="replaceDialog">
+  <label>Find:<input id="repFind"></label>
+  <label>Replace:<input id="repWith"></label>
+  <footer>
+    <button id="doReplace">Replace</button>
+    <button id="doReplaceAll">Replace All</button>
+    <button onclick="replaceDialog.close()">Cancel</button>
+  </footer>
+</dialog>
+
+<dialog id="gotoDialog">
+  <label>Line:<input id="gotoLine" type="number" min="1"></label>
+  <footer><button id="gotoOk">Go</button><button onclick="gotoDialog.close()">Cancel</button></footer>
+</dialog>
+
+<dialog id="fontDialog">
+  <label>Font:<input id="fontFamily" value="Consolas,monospace"></label>
+  <label>Size:<input id="fontSize" type="number" value="14"></label>
+  <footer><button id="fontOk">OK</button><button onclick="fontDialog.close()">Cancel</button></footer>
+</dialog>
+
+<input type="file" id="fileInput" hidden>
+
+<script>
+const editor=document.getElementById("editor");
+const cursorEl=document.getElementById("cursor");
+const lengthEl=document.getElementById("length");
+const statusbar=document.getElementById("statusbar");
+let wordWrap=false,fileName="untitled.txt";
+
+function updateStatus(){const pos=editor.selectionStart;const txt=editor.value.substr(0,pos);const lines=txt.split("\n");cursorEl.textContent="Ln "+lines.length+", Col "+(lines[lines.length-1].length+1);lengthEl.textContent="Chars "+editor.value.length;}
+editor.addEventListener("keyup",updateStatus);editor.addEventListener("click",updateStatus);
+
+// File ops
+function newFile(){if(confirm("Discard current text?")){editor.value="";fileName="untitled.txt";updateStatus();}}
+function openFile(){document.getElementById("fileInput").click();}
+document.getElementById("fileInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{editor.value=r.result;fileName=f.name;updateStatus();};r.readAsText(f);});
+function saveFile(as=false){let name=fileName;if(as||name==="untitled.txt"){name=prompt("File name:",name)||"untitled.txt";}const blob=new Blob([editor.value],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();fileName=name;}
+
+// Edit ops
+function insertDate(){editor.setRangeText(new Date().toLocaleString(),editor.selectionStart,editor.selectionEnd,"end");}
+function findTextDialog(){findDialog.showModal();}
+document.getElementById("findNext").onclick=()=>{const q=document.getElementById("findText").value;const start=editor.selectionEnd;const idx=editor.value.indexOf(q,start);if(idx>=0){editor.setSelectionRange(idx,idx+q.length);editor.focus();}else alert("Not found");};
+function replaceDialogOpen(){replaceDialog.showModal();}
+document.getElementById("doReplace").onclick=()=>{const q=document.getElementById("repFind").value;const r=document.getElementById("repWith").value;if(editor.selectionStart!==editor.selectionEnd){editor.setRangeText(r,editor.selectionStart,editor.selectionEnd,"end");}};
+document.getElementById("doReplaceAll").onclick=()=>{const q=document.getElementById("repFind").value;const r=document.getElementById("repWith").value;editor.value=editor.value.split(q).join(r);};
+function gotoDialogOpen(){gotoDialog.showModal();}
+document.getElementById("gotoOk").onclick=()=>{const line=parseInt(document.getElementById("gotoLine").value);const lines=editor.value.split("\n");let pos=0;for(let i=0;i<line-1&&i<lines.length;i++){pos+=lines[i].length+1;}editor.setSelectionRange(pos,pos);editor.focus();gotoDialog.close();};
+
+// Format
+function toggleWrap(){wordWrap=!wordWrap;editor.style.whiteSpace=wordWrap?"pre-wrap":"pre";}
+function fontDialogOpen(){fontDialog.showModal();}
+document.getElementById("fontOk").onclick=()=>{editor.style.fontFamily=document.getElementById("fontFamily").value;editor.style.fontSize=document.getElementById("fontSize").value+"px";fontDialog.close();};
+
+// View
+function toggleStatus(){statusbar.style.display=statusbar.style.display==="none"?"flex":"none";}
+
+// About
+function about(){alert("Web Notepad\nA lightweight Notepad clone in HTML/JS");}
+
+// Actions map
+const ACTIONS={new:newFile,open:openFile,save:()=>saveFile(false),saveAs:()=>saveFile(true),exit:()=>window.close(),undo:()=>document.execCommand("undo"),redo:()=>document.execCommand("redo"),cut:()=>document.execCommand("cut"),copy:()=>document.execCommand("copy"),paste:()=>document.execCommand("paste"),delete:()=>document.execCommand("delete"),find:findTextDialog,replace:replaceDialogOpen,goto:gotoDialogOpen,selectAll:()=>editor.select(),time:insertDate,wrap:toggleWrap,font:fontDialogOpen,toggleStatus:toggleStatus,about:about};
+
+// Menus
+document.querySelectorAll(".menu-item").forEach(it=>{it.onclick=()=>{ACTIONS[it.dataset.action]?.();closeMenus();}});
+function closeMenus(){document.querySelectorAll(".menu").forEach(m=>m.classList.remove("open"));}
+document.querySelectorAll(".menu>button").forEach(btn=>btn.onclick=(e)=>{const m=btn.parentElement;const o=m.classList.contains("open");closeMenus();if(!o)m.classList.add("open");e.stopPropagation();});
+window.onclick=()=>closeMenus();
+
+// Shortcuts
+window.addEventListener("keydown",e=>{
+  if(e.ctrlKey){switch(e.key.toLowerCase()){
+    case "n":e.preventDefault();newFile();break;
+    case "o":e.preventDefault();openFile();break;
+    case "s":e.preventDefault();if(e.shiftKey)saveFile(true);else saveFile(false);break;
+    case "z":e.preventDefault();document.execCommand("undo");break;
+    case "y":e.preventDefault();document.execCommand("redo");break;
+    case "x":e.preventDefault();document.execCommand("cut");break;
+    case "c":e.preventDefault();document.execCommand("copy");break;
+    case "v":e.preventDefault();document.execCommand("paste");break;
+    case "a":e.preventDefault();editor.select();break;
+    case "f":e.preventDefault();findTextDialog();break;
+    case "h":e.preventDefault();replaceDialogOpen();break;
+    case "g":e.preventDefault();gotoDialogOpen();break;
+  }}
+  if(e.key==="Delete"){document.execCommand("delete");}
+  if(e.key==="F5"){e.preventDefault();insertDate();}
+  if(e.altKey&&e.key.toLowerCase()==="w"){e.preventDefault();toggleWrap();}
+  if(e.altKey&&e.key.toLowerCase()==="f"){e.preventDefault();fontDialogOpen();}
+  if(e.altKey&&e.key.toLowerCase()==="s"){e.preventDefault();toggleStatus();}
+  if(e.key==="F1"){e.preventDefault();about();}
+  if(e.altKey&&e.key==="F4"){e.preventDefault();window.close();}
+});
+updateStatus();
+</script>
+</body>
+</html>
